@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import sys, os
 import os.path
@@ -7,32 +7,26 @@ def create(isa,c,filename,lang):
     
     if os.path.isfile("template/"+c+".rkt"):
         filename = "template/"+c+".rkt"
-        fin = open(filename,"r")
-        fout = open(isa + "/" + isa + "-" + c + ".rkt","w")
-        text = fin.read().replace("$-",isa+"-")
-        print >>fout, text
-        fin.close()
-        fout.close()
+        with open(filename, "r") as fin:
+            with open(isa + "/" + isa + "-" + c + ".rkt", "w") as fout:
+                text = fin.read().replace("$-", isa+"-")
+                print(text, file=fout)
     else:
-        fin = open(filename,"r")
-        fout = open(isa + "/" + isa + "-" + c + ".rkt","w")
-        text = fin.read().replace("$1",isa).replace("$2",c)
-        print >>fout, "#lang", lang
-        print >>fout, text
-        fin.close()
-        fout.close()
+        with open(filename, "r") as fin:
+            with open(isa + "/" + isa + "-" + c + ".rkt", "w") as fout:
+                text = fin.read().replace("$1", isa).replace("$2", c)
+                print("#lang", lang, file=fout)
+                print(text, file=fout)
 
 def main(isa):
-    print "Create template files for", isa
+    print("Create template files for", isa)
     os.system("mkdir " + isa)
 
     for name in ["test-simulator.rkt", "test-search.rkt", "main.rkt", "optimize.rkt"]:
-        fin = open("template/" + name,"r")
-        fout = open(isa + "/" + name,"w")
-        text = fin.read().replace("$",isa)
-        print >>fout, text
-        fin.close()
-        fout.close()
+        with open("template/" + name, "r") as fin:
+            with open(isa + "/" + name, "w") as fout:
+                text = fin.read().replace("$", isa)
+                print(text, file=fout)
 
     # racket
     for c in ["machine", "simulator-racket"]:

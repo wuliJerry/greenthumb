@@ -4,7 +4,6 @@
           "ops-rosette.rkt")
 
 (require rosette/solver/smt/z3)
-(require rosette/solver/kodkod/kodkod)
 
 (provide validator% sym-input get-rand-func)
 
@@ -13,7 +12,7 @@
   (cond
    [const const]
    [else
-    (define-symbolic* input number?)
+    (define-symbolic* input integer?)
     (when min (assert (>= input min)))
     (when max (assert (<= input max)))
     input]))
@@ -55,7 +54,7 @@
     (define ninsts (vector-length (get-field opcodes machine)))
     (define start-time #f)
 
-    (current-solver (new kodkod%))
+    (current-solver (z3))
 
     ;; Default: no assumption
     (define (assume state assumption)
@@ -80,20 +79,17 @@
       (pretty-display (format "solver = ~a" (current-solver)))
       (init-memory-size)
       (define (solve-until-valid)
-        (clear-asserts)
+        (clear-vc!)
 	(current-bitwidth bit)
         (define state (send machine get-state sym-input #:concrete #f))
         ;;(pretty-display `(state ,state))
 
-        (with-handlers* 
-         ([exn:fail? 
-           (lambda (e)
-             (if  (equal? (exn-message e) "solve: no satisfying execution found")
-                  (begin
-                    (increase-memory-size)
-                    (solve-until-valid))
-                  (raise e)))])
-         (solve (send simulator interpret encoded-code state))))
+        (define sol (solve (send simulator interpret encoded-code state)))
+        (if (unsat? sol)
+            (begin
+              (increase-memory-size)
+              (solve-until-valid))
+            sol))
 
       (define t1 (current-seconds))
       (solve-until-valid)
@@ -153,7 +149,7 @@
     (define/public (generate-input-states-slow n spec assumption #:db [db #f] #:raw [raw #f])
       (when debug
             (pretty-display `(generate-inputs-inner ,n ,assumption ,random-input-bit)))
-      (clear-asserts)
+      (clear-vc!)
       (current-bitwidth bit)
       (define start-state (send machine get-state sym-input #:concrete #f))
 
@@ -169,24 +165,24 @@
           )
         (define sol (solve (assert-extra-and-interpret)))
         ;;(pretty-display `(state ,start-state))
-        (define restrict-pairs (solution->list sol))
-        (set! first-solve #f)
-        (unless (empty? restrict-pairs)
-                (set! sols (cons sol sols))
-                (when (> count 1)
-                      (loop 
-                       (and extra (ormap (lambda (x) (not (equal? (car x) (cdr x)))) restrict-pairs))
-                       (sub1 count)))))
-      
-      (with-handlers* 
-       ([exn:fail? 
-         (lambda (e)
-           (if  (equal? (exn-message e) "solve: no satisfying execution found")
-                (if first-solve
-                    (raise "Cannot construct valid inputs.")
-                    (when debug (pretty-display "no more!")))
-                (raise e)))])
-       (loop))
+        (cond
+         [(unsat? sol)
+          (when first-solve
+                (raise "Cannot construct valid inputs."))
+          (when debug
+                (pretty-display "no more!"))
+          sol]
+         [else
+          (define restrict-pairs (sat sol))
+          (set! first-solve #f)
+          (set! sols (cons sol sols))
+          (if (> count 1)
+              (loop
+               (and extra (ormap (lambda (x) (not (equal? (car x) (cdr x)))) restrict-pairs))
+               (sub1 count))
+              sol)]))
+
+      (loop)
       
       (define const-range 
 	;; (- (arithmetic-shift 1 (sub1 random-input-bit)))
@@ -220,7 +216,7 @@
       (for ([sol sols])
            (define restrict-pairs (list))
            (set! first-solve #f)
-           (for ([pair (solution->list sol)])
+           (for ([pair (sat sol)])
                 ;; Filter only the ones that matter.
                 (when (hash-has-key? (car inputs) (car pair))
                       (set! restrict-pairs (cons pair restrict-pairs))))
@@ -274,7 +270,7 @@
 	    (pretty-display `(assumption ,assumption))
 	    )
       
-      (clear-asserts)
+      (clear-vc!)
       (current-bitwidth bit)
       (define start-state (send machine get-state sym-input #:concrete #f))
       (define spec-state #f)
@@ -297,14 +293,14 @@
        ([exn:fail? 
          (lambda (e)
            (when debug (pretty-display "program-eq? SAME"))
-           (unsafe-clear-terms!)
+           (clear-terms!)
            (if (equal? (exn-message e) "verify: no counterexample found")
                #f
                (raise e)))])
-       (let ([model (verify #:assume (interpret-spec!) #:guarantee (compare))])
+       (let ([model (verify (begin (interpret-spec!) (compare)))])
          (when debug (pretty-display "program-eq? DIFF"))
          (let ([state (evaluate-state start-state model)])
-           (unsafe-clear-terms!)
+           (clear-terms!)
            state)
          )))
     
@@ -422,7 +418,7 @@
 
     ;; Evaluate symbolic progstate to concrete progstate based on solution 'sol'.
     (define (evaluate-state state sol)
-      (define sol-list (solution->list sol))
+      (define sol-list (sat sol))
       (define sol-hash (make-hash sol-list))
       (define sym-vars (get-sym-vars state))
 

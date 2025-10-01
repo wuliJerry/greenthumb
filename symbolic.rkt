@@ -1,7 +1,6 @@
 #lang s-exp rosette
 
 (require "inst.rkt" "machine.rkt" "decomposer.rkt" "validator.rkt")
-(require rosette/solver/kodkod/kodkod)
 (require rosette/solver/smt/z3)
 
 (provide symbolic%)
@@ -19,13 +18,13 @@
 
     ;; Create symbolic opcode using Rosette symbolic variable.
     (define (sym-op)
-      (define-symbolic* op number?)
+      (define-symbolic* op integer?)
       (assert (and (>= op 0) (< op ninsts)))
       op)
-    
+
     ;; Create symbolic operand using Rosette symbolic variable.
     (define (sym-arg)
-      (define-symbolic* arg number?)
+      (define-symbolic* arg integer?)
       arg)
 
     (define groups (get-field groups-of-opcodes machine))
@@ -109,15 +108,15 @@
            (set-inst-op! i (random ninsts))))
 
 
-    ;; Query kodkod or SMT solver to find a candidate.
-    (define (synthesize-from-sketch spec sketch constraint  
+    ;; Query SMT solver to find a candidate.
+    (define (synthesize-from-sketch spec sketch constraint
 				    [cost #f]
 				    [time-limit 3600]
-                                    #:hard-prefix [hard-prefix (vector)] 
+                                    #:hard-prefix [hard-prefix (vector)]
                                     #:hard-postfix [hard-postfix (vector)]
 				    #:assume [assumption (send machine no-assumption)])
       (send (current-solver) shutdown)
-      (current-solver (new kodkod%))
+      (current-solver (z3))
       (pretty-display "SUPERPOTIMIZE:")
       (pretty-display (format "solver = ~a" (current-solver)))
       (when debug
@@ -174,7 +173,7 @@
       ;;(define inputs (send validator generate-input-states-slow 1 spec assumption #:raw #t))
       (send simulator interpret spec start-state)
       (define sym-vars (send validator get-sym-vars start-state))
-      (clear-asserts)
+      (clear-vc!)
 
       ;; (when debug
       ;;       (pretty-display "Test calculate performance-cost with symbolic instructions...")
@@ -190,14 +189,12 @@
             ;;(pretty-display `(inputs ,inputs))
             )
       
-      (define model 
+      (define model
         (timeout
          time-limit
-         (synthesize 
+         (synthesize
           #:forall sym-vars
-          ;;#:init inputs
-          #:assume (interpret-spec!)
-          #:guarantee (compare-spec-sketch))
+          #:guarantee (begin (interpret-spec!) (compare-spec-sketch)))
          )
         )
 
@@ -216,7 +213,7 @@
       (pretty-display (format "limit cost = ~a" cost))
       (pretty-display (format "new cost = ~a" final-cost))
       (pretty-display "=====================================")
-      (clear-asserts)
+      (clear-vc!)
       (clear-terms!)
 
       ;; Print to file

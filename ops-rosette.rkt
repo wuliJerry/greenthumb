@@ -1,7 +1,5 @@
 #lang s-exp rosette
 
-(require (only-in rosette [<< sym/<<] [>>> sym/>>>]))
-
 (provide (all-defined-out))
 
 (define-syntax-rule (assert-return c message val)
@@ -9,17 +7,19 @@
     (assert c message)
     val))
 
-(define-syntax-rule (<< x y bit) (sym/<< x y))
-(define-syntax-rule (>>> x y bit) (sym/>>> x y))
+(define-syntax-rule (<< x y bit) (arithmetic-shift x y))
+(define-syntax-rule (>>> x y bit) (arithmetic-shift x (- y)))
+(define (>> x y) (arithmetic-shift x (- y)))
 
 (define (finitize num bit)
-  (match (coerce num number?)
-         [(? term? v) v]
-         [v (let* ([mask (arithmetic-shift -1 bit)]
-                   [masked (bitwise-and (bitwise-not mask) v)])
-              (if (bitwise-bit-set? masked (- bit 1))
-                  (bitwise-ior mask masked)  
-                  masked))]))
+  (cond
+   [(term? num) num]
+   [else
+    (let* ([mask (arithmetic-shift -1 bit)]
+           [masked (bitwise-and (bitwise-not mask) num)])
+      (if (bitwise-bit-set? masked (- bit 1))
+          (bitwise-ior mask masked)
+          masked))]))
 
 (define-syntax-rule (get-field* f o)
   (for/all ([i o]) (get-field f i)))
@@ -105,7 +105,7 @@
   (define v1 (>> v byte2))
 
   (define w0 (finitize (* u0 v0) bit))
-  (define t (finitize (+ (* u1 v0) (sym/>>> w0 byte2)) bit))
+  (define t (finitize (+ (* u1 v0) (>>> w0 byte2 bit)) bit))
   (define w1 (bitwise-and t low-mask))
   (define w2 (>> t byte2))
   (set! w1 (finitize (+ (* u0 v1) w1) bit))
@@ -121,13 +121,14 @@
   (define v1 (bitwise-and (>> v byte2) low-mask))
 
   (finitize
-   (+ (* u1 v1) 
-      (sym/>>> (* u1 v0) byte2) 
-      (sym/>>> (* u0 v1) byte2) 
-      (sym/>>> (+ (bitwise-and (* u1 v0) low-mask)
-                  (bitwise-and (* u0 v1) low-mask)
-                  (sym/>>> (* u0 v0) byte2))
-               byte2))
+   (+ (* u1 v1)
+      (>>> (* u1 v0) byte2 bit)
+      (>>> (* u0 v1) byte2 bit)
+      (>>> (+ (bitwise-and (* u1 v0) low-mask)
+              (bitwise-and (* u0 v1) low-mask)
+              (>>> (* u0 v0) byte2 bit))
+           byte2
+           bit))
    bit))
 
 ;; kodkod: illegal

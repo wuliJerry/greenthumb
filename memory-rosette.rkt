@@ -157,7 +157,7 @@
 
 (define (test)
   (set! memory-size 2)
-  (define func (lambda () (define-symbolic* val number?) val))
+  (define func (lambda () (define-symbolic* val integer?) val))
   (define mem (new memory-rosette% [get-fresh-val func]))
   (assert (term? (send mem load 9)) "mem: load 9 = sym")
   (assert (term? (send mem load 6)) "mem: load 6 = sym")
