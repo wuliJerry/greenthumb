@@ -340,6 +340,7 @@
     ;; extra: extra information
     (define (get-live-in code live-out)
       ;;(pretty-display `(live-out ,live-out))
+      (current-bitwidth bit)
       (define in-state (send machine get-state sym-input #:concrete #f))
       (define out-state (interpret code in-state))
       (define vec-live-out (send machine progstate->vector live-out))
