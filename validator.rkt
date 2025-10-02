@@ -4,6 +4,7 @@
           "ops-rosette.rkt")
 
 (require rosette/solver/smt/z3)
+(require rosette/base/core/bitvector)  ; For bv? predicate
 
 (provide validator% sym-input get-rand-func)
 
@@ -12,9 +13,12 @@
   (cond
    [const const]
    [else
-    (define-symbolic* input integer?)
-    (when min (assert (>= input min)))
-    (when max (assert (<= input max)))
+    ;; In Rosette 4.1, we must use bitvector type instead of integer?
+    ;; to work with bitwise operations (bvxor, bvand, etc.)
+    (define bit (or (current-bitwidth) 32))  ; Default to 32 if not set
+    (define-symbolic* input (bitvector bit))
+    (when min (assert (bvsge input (bv min bit))))
+    (when max (assert (bvsle input (bv max bit))))
     input]))
 
 (define (get-rand-func bit)
@@ -77,26 +81,45 @@
     ;; config: machine config
     (define (adjust-memory-config encoded-code)
       (pretty-display (format "solver = ~a" (current-solver)))
-      (init-memory-size)
-      (define (solve-until-valid)
-        (clear-vc!)
-	(current-bitwidth bit)
-        (define state (send machine get-state sym-input #:concrete #f))
-        ;;(pretty-display `(state ,state))
 
-        (define sol (solve (send simulator interpret encoded-code state)))
-        (if (unsat? sol)
-            (begin
-              (increase-memory-size)
-              (solve-until-valid))
-            sol))
+      ;; Check if code uses memory operations
+      (define uses-memory?
+        (for/or ([inst encoded-code])
+          (send machine uses-memory? inst)))
 
-      (define t1 (current-seconds))
-      (solve-until-valid)
-      (finalize-memory-size)
-      (pretty-display "Finish adjusting memory config.")
-      (define t2 (current-seconds))
-      (pretty-display `(t ,(- t2 t1)))
+      (if uses-memory?
+          (begin
+            (pretty-display "Code uses memory operations - adjusting memory size...")
+            (init-memory-size)
+            (define max-iterations 12) ; Allow up to 2^12 = 4096 memory size
+            (define iteration 0)
+
+            (define (solve-until-valid)
+              (clear-vc!)
+              (current-bitwidth bit)
+              (define state (send machine get-state sym-input #:concrete #f))
+              ;;(pretty-display `(state ,state))
+
+              (define sol (solve (send simulator interpret encoded-code state)))
+              (if (unsat? sol)
+                  (begin
+                    (set! iteration (add1 iteration))
+                    (when (>= iteration max-iterations)
+                      (raise (format "adjust-memory-config: Failed after ~a iterations. Memory requirement too large." max-iterations)))
+                    (increase-memory-size)
+                    (solve-until-valid))
+                  sol))
+
+            (define t1 (current-seconds))
+            (solve-until-valid)
+            (finalize-memory-size)
+            (pretty-display "Finish adjusting memory config.")
+            (define t2 (current-seconds))
+            (pretty-display `(t ,(- t2 t1))))
+          (begin
+            (pretty-display "Code is register-only - using minimal memory size.")
+            (init-memory-size 1)
+            (finalize-memory-size)))
       )
 
 
@@ -173,7 +196,7 @@
                 (pretty-display "no more!"))
           sol]
          [else
-          (define restrict-pairs (sat sol))
+          (define restrict-pairs (hash->list (model sol)))
           (set! first-solve #f)
           (set! sols (cons sol sols))
           (if (> count 1)
@@ -190,10 +213,15 @@
       (define const-range-len (vector-length const-range))
       
       (define (generate-one-input random-f)
-        (make-hash 
-         (for/list ([v sym-vars]) 
-                   (let ([val (random-f)])
-                     (cons v val)))))
+        (make-hash
+         (for/list ([v sym-vars])
+                   (let* ([val (random-f)]
+                          ;; In Rosette 4.1 with bitvectors, check if the symbolic var is a bitvector term
+                          ;; and convert integers to bitvectors with the same type
+                          [final-val (if (and (term? v) (bitvector? (term-type v)))
+                                         (integer->bitvector val (term-type v))
+                                         val)])
+                     (cons v final-val)))))
       
       (define sym-vars (get-sym-vars start-state))
       
@@ -216,7 +244,7 @@
       (for ([sol sols])
            (define restrict-pairs (list))
            (set! first-solve #f)
-           (for ([pair (sat sol)])
+           (for ([pair (hash->list (model sol))])
                 ;; Filter only the ones that matter.
                 (when (hash-has-key? (car inputs) (car pair))
                       (set! restrict-pairs (cons pair restrict-pairs))))
@@ -237,10 +265,10 @@
 
       (if raw
           (for/list ([input inputs])
-                    (let ([sol (sat (make-immutable-hash (hash->list input)))])
+                    (let ([sol (make-immutable-hash (hash->list input))])
                       sol))
           (for/list ([input inputs])
-                    (let ([sol (sat (make-immutable-hash (hash->list input)))])
+                    (let ([sol (make-immutable-hash (hash->list input))])
                       (evaluate-state start-state sol)))))
     
     ;; Generate input states.
@@ -289,20 +317,23 @@
         )
 
       ;; VERIFY
-      (with-handlers* 
-       ([exn:fail? 
-         (lambda (e)
-           (when debug (pretty-display "program-eq? SAME"))
-           (clear-terms!)
-           (if (equal? (exn-message e) "verify: no counterexample found")
-               #f
-               (raise e)))])
-       (let ([model (verify (begin (interpret-spec!) (compare)))])
-         (when debug (pretty-display "program-eq? DIFF"))
-         (let ([state (evaluate-state start-state model)])
-           (clear-terms!)
-           state)
-         )))
+      (let ([result (verify (begin (interpret-spec!) (compare)))])
+        (cond
+         [(unsat? result)
+          ;; No counterexample found - programs are equivalent
+          (when debug (pretty-display "program-eq? SAME"))
+          (clear-terms!)
+          #f]
+         [(sat? result)
+          ;; Counterexample found - programs differ
+          (when debug (pretty-display "program-eq? DIFF"))
+          (let ([state (evaluate-state start-state result)])
+            (clear-terms!)
+            state)]
+         [else
+          ;; Unknown result
+          (clear-terms!)
+          (raise (format "counterexample: unexpected verification result: ~a" result))])))
     
     ;; Return live-in in progstate format.
     ;; live-out: progstate format
@@ -418,23 +449,32 @@
 
     ;; Evaluate symbolic progstate to concrete progstate based on solution 'sol'.
     (define (evaluate-state state sol)
-      (define sol-list (sat sol))
-      (define sol-hash (make-hash sol-list))
-      (define sym-vars (get-sym-vars state))
+      ;; In Rosette 4.1, evaluate needs a solution object, not a plain hash.
+      ;; If sol is a hash (from manual input generation), we need to handle it differently.
+      ;; If sol is a solution object (from verify/solve), use it directly.
+      (define eval-sol sol)
+      ;;(pretty-display `(eval-sol ,eval-sol ,(hash? sol)))
 
-      (for ([var sym-vars])
-           (unless (hash-has-key? sol-hash var)
-                   (set! sol-list (cons (cons var 0) sol-list))))
-      (set! sol (sat (make-immutable-hash sol-list)))
-      ;;(pretty-display `(sol ,sol))
-      
       (define-syntax-rule (eval x model)
-        (let ([ans (evaluate x model)])
-          ;;(pretty-display `(eval ,x ,ans))
-          ans))
+        (let* ([ans (cond
+                      [(hash? model)
+                       ;; Manual substitution for hash case
+                       (if (and (term? x) (hash-has-key? model x))
+                           (hash-ref model x)
+                           x)]
+                      [else
+                       ;; Use Rosette's evaluate for solution objects
+                       (evaluate x model)])]
+               ;; Always concretize the result to convert bitvectors to integers
+               [concrete-ans (concretize ans)])
+          ;;(pretty-display `(eval ,x ,ans ,concrete-ans))
+          concrete-ans))
 
       (define-syntax-rule (concretize x)
-        (if (term? x) 0 x))
+        (cond
+          [(term? x) 0]  ; Symbolic term - use default
+          [(bv? x) (bitvector->natural x)]  ; Convert bitvector to natural number (use bv? not bitvector?)
+          [else x]))
       
       (define (inner x)
         ;;(pretty-display `(inner ,x))
@@ -443,10 +483,10 @@
          [(list? x) (for/vector ([i x]) (inner i))]
          [(pair? x) (cons (inner (car x)) (inner (cdr x)))]
          [(is-a? x special%)
-          (send x create-concrete (lambda (x) (inner (eval x sol))))]
+          (send x create-concrete (lambda (x) (inner (eval x eval-sol))))]
          [else (concretize x)]))
       (define ret
-        (inner (eval state sol)))
+        (inner (eval state eval-sol)))
       ;;(pretty-display `(ret ,ret))
       ret
       )

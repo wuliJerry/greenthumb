@@ -28,6 +28,7 @@
              update-progstate-ins kill-outs update-classes-pool get-opcode-name)
     (override display-state get-constructor
               progstate-structure update-progstate-ins-load update-progstate-ins-store)
+    (public uses-memory?)
     (field [cmp-inst #f])
     (init-field [inst-choice-name #f])
 
@@ -239,6 +240,14 @@
            )
       (newline)
       )
+
+    ;; Check if an instruction uses memory (ldr/str)
+    (define (uses-memory? inst)
+      (define op-vec (inst-op inst))
+      (when op-vec
+        (define base-op (vector-ref op-vec 0))
+        (or (equal? base-op "ldr") (equal? base-op "str")
+            (equal? base-op "ldr#") (equal? base-op "str#"))))
 
     ;; Pretty print progstate.
     (define (display-state s)

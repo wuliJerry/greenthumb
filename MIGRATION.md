@@ -136,6 +136,34 @@ Z3 solver may have different performance characteristics compared to Kodkod:
 - Memory usage patterns may differ
 - Some queries that were fast with Kodkod may be slower with Z3, and vice versa
 
+## Additional Fixes (2025-10-02)
+
+### Issue: Driver Processes Dying During Optimization
+
+**Symptoms**: All driver processes crash with "memory size is too large" error
+
+**Root Cause**: Incorrect `sat` API usage caused solution extraction to fail, leading to infinite memory size increases
+
+**Fixes Applied**:
+
+1. **Corrected Solution API Usage** (`validator.rkt`)
+   - Line 176: `(sat sol)` → `(hash->list (model sol))`
+   - Line 219: `(sat sol)` → `(hash->list (model sol))`
+   - Line 240, 243: `(sat ...)` → Direct hash usage (removed incorrect wrapper)
+   - Line 421: Added compatibility check for hash vs solution object
+
+2. **Added Safety Limits** (`validator.rkt`)
+   - Added max iteration limit (12) to prevent infinite memory growth
+   - Added clear error messages when limit exceeded
+
+3. **Increased Memory Limits** (`memory-rosette.rkt`)
+   - Increased limit from 100 to 4096 to handle larger programs
+   - Improved error messages with diagnostic information
+   - Made init-memory-size accept optional initial-size parameter
+
+4. **Fixed Missed Type Migration** (`arm/test-simulator.rkt`)
+   - Line 24: `number?` → `integer?` (was missed in initial migration)
+
 ## Rollback Procedure
 
 If issues arise, you can rollback by:
@@ -171,11 +199,18 @@ If issues arise, you can rollback by:
 **Changes**:
 - `coerce` function removed → Use direct `term?` checking
 - `unsafe-clear-terms!` → `clear-terms!`
-- `solution->list` → `sat`
+- `solution->list` → `model` (NOTE: Initial migration incorrectly used `sat`)
 
 **Files Modified**:
 - `ops-rosette.rkt`: Removed `coerce` usage
-- `validator.rkt`: Updated `clear-terms!` and `sat`
+- `validator.rkt`: Updated `clear-terms!` and `model`
+
+**CORRECTION (2025-10-02)**:
+The initial migration incorrectly mapped `solution->list` to `sat`. The correct mapping is:
+- **Before**: `(solution->list sol)`
+- **After**: `(hash->list (model sol))`
+
+In Rosette 4.1, `model` extracts the binding hash from a satisfiable solution, and `hash->list` converts it to the list of pairs format that was returned by the old `solution->list`.
 
 ### 7. Query API Syntax Updates
 

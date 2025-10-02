@@ -1,6 +1,6 @@
 #lang s-exp rosette
 
-(require "../simulator.rkt" "../ops-rosette.rkt" 
+(require "../simulator.rkt" "../ops-rosette.rkt"
          "../inst.rkt"
          "../machine.rkt" "arm-machine.rkt")
 (provide arm-simulator-rosette%)
@@ -72,12 +72,11 @@
     (define bvsub (bvop -))
     (define bvrsub (bvop (lambda (x y) (- y x))))
 
-    (define bvnot (lambda (x) (finitize-bit (bitwise-not x))))
-    (define bvand (bvop bitwise-and))
-    (define bvor  (bvop bitwise-ior))
-    (define bvxor (bvop bitwise-xor))
-    (define bvandn (lambda (x y) (finitize-bit (bitwise-and x (bitwise-not y)))))
-    (define bviorn  (lambda (x y) (finitize-bit (bitwise-ior x (bitwise-not y)))))
+    ;; In Rosette 4.1, bvnot, bvand, bvor, bvxor are built-in for bitvectors.
+    ;; We just define wrappers for bvandn and bviorn which combine operations.
+    ;; Note: We must NOT redefine bvnot/bvand/bvor/bvxor or they shadow built-ins!
+    (define bvandn (lambda (x y) (bvand x (bvnot y))))
+    (define bviorn (lambda (x y) (bvor x (bvnot y))))
 
     (define bvrev (bvuop rev))
     (define bvrev16 (bvuop rev16))
@@ -197,19 +196,21 @@
     ;; 3 - x > y same sign
     ;; 4 - x < 0
     ;; 5 - y < 0
-    (define (tst x y) (if (= (bitwise-and x y) 0) 0 1))
+    ;; Use bitvector operations for Rosette 4.1 compatibility
+    (define (tst x y) (if (bveq (bvand x y) (bv 0 bit)) 0 1))
     (define (cmp x y)
-      (define my-x (finitize-bit x))
-      (define my-y (finitize-bit y))
+      (define my-x x)  ; No need to finitize - bitvectors are already the right width
+      (define my-y y)
       ;;(pretty-display `(cmp ,my-x ,my-y))
+      (define zero (bv 0 bit))
       (cond
-       [(= my-x my-y) 0]
-       [(or (and (>= my-x 0) (>= my-y 0))
-	    (and (< my-x 0) (< my-y 0)))
+       [(bveq my-x my-y) 0]
+       [(or (and (bvsge my-x zero) (bvsge my-y zero))
+	    (and (bvslt my-x zero) (bvslt my-y zero)))
 	(cond
-	 [(< my-x my-y) 2]
+	 [(bvslt my-x my-y) 2]
 	 [else 3])]
-       [(< my-x 0) 4]
+       [(bvslt my-x zero) 4]
        [else 5]))
     
     ;; Interpret a given program from a given state.
@@ -412,9 +413,9 @@
            [(inst-eq `sub) (rrr bvsub #t)]
            [(inst-eq `rsb) (rrr bvrsub #t)]
 
-           [(inst-eq `and) (rrr bitwise-and #t)]
-           [(inst-eq `orr) (rrr bitwise-ior #t)]
-           [(inst-eq `eor) (rrr bitwise-xor #t)]
+           [(inst-eq `and) (rrr bvand #t)]
+           [(inst-eq `orr) (rrr bvor #t)]
+           [(inst-eq `eor) (rrr bvxor #t)]
            [(inst-eq `bic) (rrr bvandn #t)]
            [(inst-eq `orn) (rrr bviorn #t)]
 
@@ -423,9 +424,9 @@
            [(inst-eq `sub#) (rri bvsub)]
            [(inst-eq `rsb#) (rri bvrsub)]
 
-           [(inst-eq `and#) (rri bitwise-and)]
-           [(inst-eq `orr#) (rri bitwise-ior)]
-           [(inst-eq `eor#) (rri bitwise-xor)]
+           [(inst-eq `and#) (rri bvand)]
+           [(inst-eq `orr#) (rri bvor)]
+           [(inst-eq `eor#) (rri bvxor)]
            [(inst-eq `bic#) (rri bvandn)]
            [(inst-eq `orn#) (rri bviorn)]
            

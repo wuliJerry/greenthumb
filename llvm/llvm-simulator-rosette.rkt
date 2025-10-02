@@ -1,6 +1,7 @@
 #lang s-exp rosette
 
 (require "../simulator-rosette.rkt" "../ops-rosette.rkt" "../inst.rkt" "llvm-machine.rkt")
+(require (only-in rosette/safe bitwise-and bitwise-ior bitwise-xor bitwise-not))
 (provide llvm-simulator-rosette%)
 
 (define llvm-simulator-rosette%

@@ -21,7 +21,8 @@
   (if const const (random 10)))
 
 (define (func-sym #:min [min #f] #:max [max #f] #:const [const #f])
-  (define-symbolic* input number?)
+  ;; In Rosette 4.1, use bitvector type instead of integer?
+  (define-symbolic* input (bitvector 32))
   (if const const input))
 
 ;; Input machine state
@@ -82,7 +83,8 @@ orr r0, r0, r1, asr 31
 ;; ;; Concrete program with symbolic inputs
 #|
 (define (sym-input)
-  (define-symbolic* in number?)
+  ;; In Rosette 4.1, use bitvector type instead of number?
+  (define-symbolic* in (bitvector 32))
   in)
 (define input-state-sym (default-state machine sym-input))
 

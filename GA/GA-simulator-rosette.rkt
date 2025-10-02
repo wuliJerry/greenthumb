@@ -3,6 +3,7 @@
 (require "../simulator.rkt" "../ops-rosette.rkt"  "GA-ops-rosette.rkt"
          "../inst.rkt"
          "../machine.rkt" "GA-machine.rkt")
+(require (only-in rosette/safe bitwise-and bitwise-ior bitwise-xor bitwise-not))
 (provide GA-simulator-rosette%)
 
 (define GA-simulator-rosette%

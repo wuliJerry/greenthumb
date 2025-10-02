@@ -29,7 +29,8 @@
   (if const const (random 10)))
 
 (define (func-sym #:min [min #f] #:max [max #f] #:const [const #f])
-  (define-symbolic* input number?)
+  ;; In Rosette 4.1, use bitvector type instead of number?
+  (define-symbolic* input (bitvector 18))  ; GA is 18-bit
   (if const const input))
 
 (define input (send machine vector->progstate

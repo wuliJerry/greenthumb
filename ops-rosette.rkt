@@ -1,5 +1,7 @@
 #lang s-exp rosette
 
+;; Note: In Rosette 4.1, bitwise operations work directly with bitvectors
+;; via built-in bvand, bvor, bvxor, bvnot. No special imports needed.
 (provide (all-defined-out))
 
 (define-syntax-rule (assert-return c message val)

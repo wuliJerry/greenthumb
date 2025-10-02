@@ -131,7 +131,8 @@
     ))
 
 (define (test1)
-  (define func (lambda () (define-symbolic* val integer?) val))
+  ;; In Rosette 4.1, use bitvector type instead of integer?
+  (define func (lambda () (define-symbolic* val (bitvector 32)) val))
   (define q-init (new queue-in-rosette% [get-fresh-val func]))
   (define q (send q-init clone))
   (pretty-display `(pop ,(send q pop)))
@@ -147,16 +148,17 @@
   )
 
 (define (test2)
-  (define func (lambda () (define-symbolic* val integer?) val))
+  ;; In Rosette 4.1, use bitvector type instead of integer?
+  (define func (lambda () (define-symbolic* val (bitvector 32)) val))
   (define q-init (new queue-out-rosette% [get-fresh-val func]))
   (define q (send q-init clone))
-  (send q push 1)
-  (send q push 2)
+  (send q push (bv 1 32))
+  (send q push (bv 2 32))
   (pretty-display `(queue-init ,q-init))
   (pretty-display `(queue ,q))
 
   (define q2 (send q-init clone q))
-  (send q2 push 1)
+  (send q2 push (bv 1 32))
   (pretty-display `(queue ,q2))
-  (send q2 push 22) ;; assert: push-cand: push a value different from spec does
+  (send q2 push (bv 22 32)) ;; assert: push-cand: push a value different from spec does
   )
