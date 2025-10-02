@@ -115,7 +115,8 @@
                                     #:hard-prefix [hard-prefix (vector)]
                                     #:hard-postfix [hard-postfix (vector)]
 				    #:assume [assumption (send machine no-assumption)])
-      (send (current-solver) shutdown)
+      ;; In Rosette 4.1, z3 solver doesn't have shutdown method
+      ;; Just create a new solver instance instead
       (current-solver (z3))
       (pretty-display "SUPERPOTIMIZE:")
       (pretty-display (format "solver = ~a" (current-solver)))
