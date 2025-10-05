@@ -9,7 +9,9 @@
 (define mode (make-parameter `partial))
 
 (define dir (make-parameter "output"))
-(define time-limit (make-parameter 3600))
+;; Time limit in seconds. Set to a large value (24 hours) by default.
+;; The search will terminate early if it finds an improvement.
+(define time-limit (make-parameter 86400))
  
 (define file-to-optimize
   (command-line
@@ -21,7 +23,7 @@
                         "Output directory (default=output)"
                         (dir d)]
    [("-t" "--time-limit") t
-                        "Time limit in seconds (default=3600)."
+                        "Time limit in seconds (default=86400, terminates early on improvement)."
                         (time-limit t)]
    
    #:once-any
