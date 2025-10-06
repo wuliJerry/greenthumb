@@ -63,6 +63,7 @@
     ;; Inform GreenThumb how many opcodes there are in one instruction.
     (init-machine-description 1)
 
+    ;; NOP instruction - keep it defined but will prevent its use in optimization
     (define-instruction-class 'nop '(nop))
 
     ;; R-type instructions with commutative operations

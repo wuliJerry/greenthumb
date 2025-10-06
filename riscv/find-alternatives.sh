@@ -5,6 +5,7 @@
 
 RACKET=/home/allenjin/racket-8.17/bin/racket
 TIME_LIMIT=120
+CORES=4
 OUTPUT_BASE="alternatives-output"
 
 # Create output directory
@@ -23,6 +24,7 @@ echo "   Making ADD expensive (cost=1000)"
 $RACKET optimize-alt.rkt \
     --cost costs/add-expensive.rkt \
     -t $TIME_LIMIT \
+    -p $CORES \
     -d "$OUTPUT_BASE/add_copy" \
     programs/alternatives/single/add_copy.s
 
@@ -33,6 +35,7 @@ echo "   Making SLLI expensive (cost=1000)"
 $RACKET optimize-alt.rkt \
     --cost costs/slli-expensive.rkt \
     -t $TIME_LIMIT \
+    -p $CORES \
     -d "$OUTPUT_BASE/slli_double" \
     programs/alternatives/single/slli_double.s
 
@@ -46,6 +49,7 @@ echo "   Making SLLI and ADD expensive (cost=500 each)"
 $RACKET optimize-alt.rkt \
     --cost costs/shift-add-expensive.rkt \
     -t $TIME_LIMIT \
+    -p $CORES \
     -d "$OUTPUT_BASE/mul_by_5" \
     programs/alternatives/double/mul_by_5.s
 
@@ -56,6 +60,7 @@ echo "   Making XORI and ADDI expensive (cost=500 each)"
 $RACKET optimize-alt.rkt \
     --cost costs/xor-addi-expensive.rkt \
     -t $TIME_LIMIT \
+    -p $CORES \
     -d "$OUTPUT_BASE/negate" \
     programs/alternatives/double/negate.s
 

@@ -1,0 +1,103 @@
+rm: cannot remove 'alternatives-all/sltu': No such file or directory
+Loading cost model from: costs/sltu-expensive.rkt
+=== Optimization with Custom Cost Model ===
+Program: programs/alternatives/single/sltu.s
+Original code:
+sltu x2, x1, x3
+Original cost: 1000
+Using custom cost model with 4 cores
+Running optimization for 120 seconds with 4 cores...
+SEACH TYPE: stoch size=#f
+>>> select code:
+sltu x2, x1, x3
+>>> live-out-org: #(#(#f #f #f #f) #f)
+>>> machine-config: 4
+>>> live-out: #(#(#f #f #f #f) #f)
+(map-back #f)
+>>> compressed-code:
+sltu x2, x1, x3
+>>> machine-config: 4
+>>> live-out: #(#(#f #f #f #f) #f)
+OPTIMIZE-PARTIAL from = 0, to = 1
+>>> original cost: 1000
+
+SEARCH INSTANCES
+----------------
+stoch:	4 instances
+sym:	0 instances
+enum:	0 instances
+
+
+Error: print stat
+current-time:	11
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	21
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	31
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	41
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	51
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	61
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	71
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	81
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	91
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	101
+driver-0 is dead.
+driver-1 is dead.
+driver-2 is dead.
+driver-3 is dead.
+Error: print stat
+current-time:	111
+Error: print stat
+current-time:	121
+
+OUTPUT
+------
+sltu x2, x1, x3
+
+Optimized code found:
+
+Optimization completed. Check output directory for results.
+Output directory: alternatives-all/sltu

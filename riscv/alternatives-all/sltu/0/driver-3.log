@@ -1,0 +1,9 @@
+get-field: given object does not have the requested field
+  field name: debug
+  object: (object:riscv-machine% ...)
+  context...:
+   /home/allenjin/racket-8.17/collects/racket/private/class-internal.rkt:4730:0: obj-error
+   /home/allenjin/Codes/greenthumb_jerry/riscv/riscv-stochastic.rkt:10:2
+   /home/allenjin/racket-8.17/collects/racket/private/class-internal.rkt:3657:0: continue-make-object
+   /home/allenjin/racket-8.17/collects/racket/private/class-internal.rkt:3631:0: do-make-object/real-class
+   body of "/home/allenjin/Codes/greenthumb_jerry/riscv/alternatives-all/sltu/0/driver-3.rkt"

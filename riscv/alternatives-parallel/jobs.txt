@@ -1,4 +1,0 @@
-programs/alternatives/single/add_copy.s costs/add-expensive.rkt alternatives-parallel/add_copy add_copy
-programs/alternatives/single/slli_double.s costs/slli-expensive.rkt alternatives-parallel/slli_double slli_double
-programs/alternatives/double/mul_by_5.s costs/shift-add-expensive.rkt alternatives-parallel/mul_by_5 mul_by_5
-programs/alternatives/double/negate.s costs/xor-addi-expensive.rkt alternatives-parallel/negate negate

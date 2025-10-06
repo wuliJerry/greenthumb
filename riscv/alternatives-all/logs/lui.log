@@ -1,0 +1,5 @@
+parser: syntax error at 'REG' in src l:3 c:9
+  context...:
+   /home/allenjin/racket-8.17/share/pkgs/parser-tools-lib/parser-tools/yacc.rkt:356:16: parsing-loop
+   body of "/home/allenjin/Codes/greenthumb_jerry/riscv/optimize-alt.rkt"
+Loading cost model from: costs/lui-expensive.rkt
