@@ -5,7 +5,7 @@
 
 RACKET=/home/allenjin/racket-8.17/bin/racket
 TIME_LIMIT=120
-CORES_PER_JOB=2
+CORES_PER_JOB=64
 MAX_PARALLEL=4  # Number of parallel jobs
 OUTPUT_BASE="alternatives-parallel"
 
@@ -30,12 +30,13 @@ run_optimization() {
 
     echo "[$(date +%H:%M:%S)] Starting: $test_name"
 
-    $RACKET optimize-with-cost.rkt "$prog_file" \
+    $RACKET optimize-with-cost.rkt \
         --cost "$cost_file" \
         --$search_mode \
         -c $CORES_PER_JOB \
         -t $TIME_LIMIT \
         -d "$output_dir" \
+        "$prog_file" \
         > "$OUTPUT_BASE/logs/${test_name}.log" 2>&1
 
     if [ $? -eq 0 ]; then

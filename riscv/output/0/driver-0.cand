@@ -1,4 +1,0 @@
-nop 
-slli x2, x1, 1
-add x2, x2, x2
-add x2, x2, x1

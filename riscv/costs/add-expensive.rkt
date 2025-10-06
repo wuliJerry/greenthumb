@@ -1,4 +1,3 @@
-#lang racket
 ;; Cost model making ADD very expensive to find alternatives
 #hash((add . 1000)      ; Make ADD prohibitively expensive
       (sub . 1)

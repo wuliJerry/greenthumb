@@ -44,14 +44,13 @@ costs/
 
 ## Usage
 
-### Single Test
+### Single Test (Using Simplified Optimizer)
 ```bash
-racket optimize-with-cost.rkt programs/alternatives/single/add_copy.s \
+racket optimize-alt.rkt \
     --cost costs/add-expensive.rkt \
-    --stoch \
-    -c 4 \
     -t 60 \
-    -d output/add_copy
+    -d output/add_copy \
+    programs/alternatives/single/add_copy.s
 ```
 
 ### Run All Tests (Sequential)
@@ -123,6 +122,29 @@ For multiply by 5 (`slli x2, x1, 2; add x2, x2, x1`) with both expensive:
 - `--hybrid`: Better for complex sequences
 - `--sym`: For exhaustive but slower search
 - `--enum`: For systematic enumeration
+
+## Important Notes & Limitations
+
+### Current Limitations
+1. **Stochastic search may find incorrect alternatives** - The search uses random testing, not formal verification
+   - May find programs that pass test cases but aren't truly equivalent
+   - Example: Finding "nop" as alternative when it doesn't compute the correct value
+
+2. **Solutions to improve accuracy**:
+   - **Use longer time limits** (300+ seconds)
+   - **Use symbolic or hybrid search** (more accurate but slower)
+   - **Verify results manually** before trusting alternatives
+   - **Add more comprehensive test generation** in validator
+
+### Recommended Approach
+For best results finding true equivalences:
+```bash
+# Use hybrid search with longer timeout
+racket optimize.rkt --hybrid -c 8 -t 300 programs/test.s
+
+# Or modify the validator to use more test cases
+# Edit riscv-validator.rkt to increase test coverage
+```
 
 ## Extending to All Instructions
 

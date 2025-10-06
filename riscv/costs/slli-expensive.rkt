@@ -1,4 +1,3 @@
-#lang racket
 ;; Cost model making SLLI very expensive to find alternatives
 #hash((add . 1)
       (sub . 1)

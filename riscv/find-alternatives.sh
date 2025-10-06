@@ -4,8 +4,8 @@
 # by making the original instructions prohibitively expensive
 
 RACKET=/home/allenjin/racket-8.17/bin/racket
-TIME_LIMIT=36000
-CORES=16
+TIME_LIMIT=120
+CORES=64
 OUTPUT_BASE="alternatives-output"
 
 # Create output directory
@@ -21,23 +21,21 @@ echo "=== Single Instruction Alternatives ==="
 # Test 1: Find alternatives to "add x2, x1, x0" (copy operation)
 echo "1. Testing: add x2, x1, x0 (copy)"
 echo "   Making ADD expensive (cost=1000)"
-$RACKET optimize-with-cost.rkt programs/alternatives/single/add_copy.s \
+$RACKET optimize-alt.rkt \
     --cost costs/add-expensive.rkt \
-    --stoch \
-    -c $CORES \
     -t $TIME_LIMIT \
-    -d "$OUTPUT_BASE/add_copy"
+    -d "$OUTPUT_BASE/add_copy" \
+    programs/alternatives/single/add_copy.s
 
 # Test 2: Find alternatives to "slli x2, x1, 1" (multiply by 2)
 echo ""
 echo "2. Testing: slli x2, x1, 1 (multiply by 2)"
 echo "   Making SLLI expensive (cost=1000)"
-$RACKET optimize-with-cost.rkt programs/alternatives/single/slli_double.s \
+$RACKET optimize-alt.rkt \
     --cost costs/slli-expensive.rkt \
-    --stoch \
-    -c $CORES \
     -t $TIME_LIMIT \
-    -d "$OUTPUT_BASE/slli_double"
+    -d "$OUTPUT_BASE/slli_double" \
+    programs/alternatives/single/slli_double.s
 
 # Double instruction tests
 echo ""
@@ -46,23 +44,21 @@ echo "=== Two-Instruction Sequence Alternatives ==="
 # Test 3: Find alternatives to multiply by 5
 echo "3. Testing: slli x2, x1, 2; add x2, x2, x1 (multiply by 5)"
 echo "   Making SLLI and ADD expensive (cost=500 each)"
-$RACKET optimize-with-cost.rkt programs/alternatives/double/mul_by_5.s \
+$RACKET optimize-alt.rkt \
     --cost costs/shift-add-expensive.rkt \
-    --hybrid \
-    -c $CORES \
     -t $TIME_LIMIT \
-    -d "$OUTPUT_BASE/mul_by_5"
+    -d "$OUTPUT_BASE/mul_by_5" \
+    programs/alternatives/double/mul_by_5.s
 
 # Test 4: Find alternatives to negate
 echo ""
 echo "4. Testing: xori x2, x1, -1; addi x2, x2, 1 (negate)"
 echo "   Making XORI and ADDI expensive (cost=500 each)"
-$RACKET optimize-with-cost.rkt programs/alternatives/double/negate.s \
+$RACKET optimize-alt.rkt \
     --cost costs/xor-addi-expensive.rkt \
-    --hybrid \
-    -c $CORES \
     -t $TIME_LIMIT \
-    -d "$OUTPUT_BASE/negate"
+    -d "$OUTPUT_BASE/negate" \
+    programs/alternatives/double/negate.s
 
 echo ""
 echo "=== Collecting Results ==="

@@ -1,4 +1,3 @@
-#lang racket
 ;; Cost model making XORI and ADDI expensive for negate test
 #hash((add . 1)
       (sub . 1)       ; SUB might be a good alternative

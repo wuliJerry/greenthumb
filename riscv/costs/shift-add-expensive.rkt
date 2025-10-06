@@ -1,4 +1,3 @@
-#lang racket
 ;; Cost model making SLLI and ADD expensive for mul_by_5 test
 #hash((add . 500)       ; Make ADD expensive
       (sub . 1)
