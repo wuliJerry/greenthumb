@@ -3,7 +3,7 @@
 (require "riscv-parser.rkt" "riscv-printer.rkt" "riscv-machine.rkt"
          "riscv-simulator-rosette.rkt" "../memory-racket.rkt" "../validator.rkt")
 
-(current-bitwidth 64)
+(current-bitwidth 32)
 
 (define parser (new riscv-parser%))
 (define machine (new riscv-machine% [config 10]))
@@ -17,36 +17,32 @@
     (vector-set! regs i val))
   (progstate regs (new memory-racket% [get-fresh-val (get-rand-func 4)])))
 
-;; Test swap_xor.s
-(pretty-display "=== Testing swap_xor.s ===")
-(define code1 (send parser ir-from-file "programs/swap_xor.s"))
-(send printer print-syntax code1)
+;; Get filename from command-line args
+(define args (current-command-line-arguments))
+(define filename
+  (if (> (vector-length args) 0)
+      (vector-ref args 0)
+      "programs/negate.s"))
 
-(define encoded1 (send printer encode code1))
-(define input1 (make-state 5 3))  ; x0=5, x1=3
-(pretty-display (format "Input:  x0=~a, x1=~a"
-                        (vector-ref (progstate-regs input1) 0)
-                        (vector-ref (progstate-regs input1) 1)))
+(pretty-display (format "=== Testing ~a ===" filename))
 
-(define output1 (send sim interpret encoded1 input1))
-(pretty-display (format "Output: x0=~a, x1=~a (expected x0=3, x1=5)"
-                        (vector-ref (progstate-regs output1) 0)
-                        (vector-ref (progstate-regs output1) 1)))
+;; Parse the file
+(define code (send parser ir-from-file filename))
+(if (eq? code #f)
+    (begin
+      (pretty-display (format "Error: Could not parse file ~a" filename))
+      (exit 1))
+    (begin
+      (pretty-display "Source:")
+      (send printer print-syntax code)
 
-(newline)
+      (define encoded (send printer encode code))
 
-;; Test absolute_diff.s
-(pretty-display "=== Testing absolute_diff.s ===")
-(define code2 (send parser ir-from-file "programs/absolute_diff.s"))
-(send printer print-syntax code2)
+      ;; Create test input - default values x1=42, x2=10
+      (define input (make-state 0 42 10 0 0 0 0 0 0 0))
+      (pretty-display (format "\nInput registers:"))
+      (pretty-display (progstate-regs input))
 
-(define encoded2 (send printer encode code2))
-(define input2 (make-state 0 10 3))  ; x0=0, x1=10, x2=3
-(pretty-display (format "Input:  x1=~a, x2=~a"
-                        (vector-ref (progstate-regs input2) 1)
-                        (vector-ref (progstate-regs input2) 2)))
-
-(define output2 (send sim interpret encoded2 input2))
-(pretty-display (format "Output: x0=~a (expected 7 for |10-3|)"
-                        (vector-ref (progstate-regs output2) 0)))
-(pretty-display (format "All regs: ~a" (progstate-regs output2)))
+      (define output (send sim interpret encoded input))
+      (pretty-display (format "\nOutput registers:"))
+      (pretty-display (progstate-regs output))))

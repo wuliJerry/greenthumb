@@ -4,7 +4,7 @@
          "riscv-simulator-rosette.rkt" "riscv-simulator-racket.rkt"
          "../memory-racket.rkt" "../validator.rkt")
 
-(current-bitwidth 64)
+(current-bitwidth 32)
 
 ;; Test a program file
 (define parser (new riscv-parser%))
@@ -32,8 +32,8 @@
 (pretty-display (progstate-regs output-state1))
 
 (newline)
-(pretty-display "=== Testing programs/multiply_by_3.s ===")
-(define code2 (send parser ir-from-file "programs/multiply_by_3.s"))
+(pretty-display "=== Testing programs/identity.s ===")
+(define code2 (send parser ir-from-file "programs/identity.s"))
 (pretty-display "Source:")
 (send printer print-syntax code2)
 
@@ -48,25 +48,25 @@
 (pretty-display (progstate-regs input-state2))
 
 (define output-state2 (send simulator1 interpret encoded-code2 input-state2))
-(pretty-display "Output state (x0 should be 21):")
+(pretty-display "Output state (x0 should be 7):")
 (pretty-display (progstate-regs output-state2))
 
 (newline)
-(pretty-display "=== Testing programs/clear_rightmost_bit.s ===")
-(define code3 (send parser ir-from-file "programs/clear_rightmost_bit.s"))
+(pretty-display "=== Testing programs/double_negate.s ===")
+(define code3 (send parser ir-from-file "programs/double_negate.s"))
 (pretty-display "Source:")
 (send printer print-syntax code3)
 
 (define encoded-code3 (send printer encode code3))
 
-;; Create test input: x1 = 0b10110 = 22
+;; Create test input: x1 = 22
 (define input-state3
   (progstate (vector 0 22 0 0 0 0 0 0 0 0)
              (new memory-racket% [get-fresh-val (get-rand-func 4)])))
 
-(pretty-display "\nInput state (x1=22=0b10110):")
+(pretty-display "\nInput state (x1=22):")
 (pretty-display (progstate-regs input-state3))
 
 (define output-state3 (send simulator1 interpret encoded-code3 input-state3))
-(pretty-display "Output state (x0 should be 20=0b10100):")
+(pretty-display "Output state (x0 should be 22):")
 (pretty-display (progstate-regs output-state3))

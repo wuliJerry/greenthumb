@@ -1,6 +1,7 @@
 #lang s-exp rosette
 
-(require "../simulator-rosette.rkt" "../ops-rosette.rkt" "../inst.rkt" "riscv-machine.rkt")
+(require "../simulator-rosette.rkt" "../ops-rosette.rkt" "../inst.rkt" "riscv-machine.rkt"
+         rosette/lib/angelic)
 (provide riscv-simulator-rosette%)
 
 (define riscv-simulator-rosette%
@@ -22,6 +23,70 @@
     ;; Helper to ensure value is a bitvector
     (define (ensure-bv x)
       (if (bv? x) x (bv x bit)))
+
+    ;; Helper for signed multiplication high (using ARM's approach)
+    (define (bv-mulh-signed x y)
+      ;; For mixed mode, convert bitvectors to integers
+      (define x-int (if (bv? x) (bitvector->integer x) x))
+      (define y-int (if (bv? y) (bitvector->integer y) y))
+      (define result (smmul x-int y-int bit))
+      (ensure-bv result))
+
+    ;; Helper for unsigned multiplication high
+    (define (bv-mulh-unsigned x y)
+      ;; For mixed mode, convert bitvectors to integers
+      (define x-int (if (bv? x) (bitvector->natural x) x))
+      (define y-int (if (bv? y) (bitvector->natural y) y))
+      (define result (ummul x-int y-int bit))
+      (ensure-bv result))
+
+    ;; Helper for signed×unsigned multiplication high
+    (define (bv-mulhsu x y)
+      ;; Use integer arithmetic for simplicity
+      (define x-int (if (bv? x) (bitvector->integer x) x))
+      (define y-int (if (bv? y) (bitvector->natural y) y))
+      ;; Compute full 64-bit product and shift
+      (define prod (* x-int y-int))
+      (ensure-bv (finitize (arithmetic-shift prod (- bit)) bit)))
+
+    ;; Division helpers with RISC-V special cases
+    (define (bv-div-signed x y)
+      (define bv-x (ensure-bv x))
+      (define bv-y (ensure-bv y))
+      (cond
+        ;; Division by zero: return -1
+        [(bveq bv-y (bv 0 bit)) (bv -1 bit)]
+        ;; Overflow: most negative / -1 = most negative
+        [(and (bveq bv-x (bv (arithmetic-shift -1 (sub1 bit)) bit))
+              (bveq bv-y (bv -1 bit)))
+         bv-x]
+        [else (bvsdiv bv-x bv-y)]))
+
+    (define (bv-div-unsigned x y)
+      (define bv-x (ensure-bv x))
+      (define bv-y (ensure-bv y))
+      (if (bveq bv-y (bv 0 bit))
+          (bv (sub1 (arithmetic-shift 1 bit)) bit)  ; All 1s for division by zero
+          (bvudiv bv-x bv-y)))
+
+    (define (bv-rem-signed x y)
+      (define bv-x (ensure-bv x))
+      (define bv-y (ensure-bv y))
+      (cond
+        ;; Division by zero: return dividend
+        [(bveq bv-y (bv 0 bit)) bv-x]
+        ;; Overflow case: remainder is 0
+        [(and (bveq bv-x (bv (arithmetic-shift -1 (sub1 bit)) bit))
+              (bveq bv-y (bv -1 bit)))
+         (bv 0 bit)]
+        [else (bvsrem bv-x bv-y)]))
+
+    (define (bv-rem-unsigned x y)
+      (define bv-x (ensure-bv x))
+      (define bv-y (ensure-bv y))
+      (if (bveq bv-y (bv 0 bit))
+          bv-x  ; Return dividend for division by zero
+          (bvurem bv-x bv-y)))
 
     ;; Wrapper for bitvector binary operations that may receive integer immediates
     (define-syntax-rule (bv-binop rosette-op)
@@ -72,7 +137,8 @@
           (define a (vector-ref args 1))
           (define b (vector-ref args 2))
           (define val (f (vector-ref regs-out a) (vector-ref regs-out b)))
-          (vector-set! regs-out d val))
+          ;; Only set if not x0 (register 0)
+          (unless (= d 0) (vector-set! regs-out d val)))
 
         ;; I-type: rd = rs1 op imm
         (define (rri f)
@@ -80,21 +146,24 @@
           (define a (vector-ref args 1))
           (define imm (vector-ref args 2))
           (define val (f (vector-ref regs-out a) imm))
-          (vector-set! regs-out d val))
+          ;; Only set if not x0 (register 0)
+          (unless (= d 0) (vector-set! regs-out d val)))
 
         ;; RR-type (unary): rd = op(rs)
         (define (rr f)
           (define d (vector-ref args 0))
           (define a (vector-ref args 1))
           (define val (f (vector-ref regs-out a)))
-          (vector-set! regs-out d val))
+          ;; Only set if not x0 (register 0)
+          (unless (= d 0) (vector-set! regs-out d val)))
 
         ;; RI-type (upper immediate): rd = imm << 12
         (define (ri-upper)
           (define d (vector-ref args 0))
           (define imm (vector-ref args 1))
           (define val (bvshl (ensure-bv imm) (ensure-bv 12)))
-          (vector-set! regs-out d val))
+          ;; Only set if not x0 (register 0)
+          (unless (= d 0) (vector-set! regs-out d val)))
 
         (cond
          [(equal? op-name 'nop)   (void)]
@@ -102,6 +171,15 @@
          [(equal? op-name 'add)   (rrr my-bvadd)]
          [(equal? op-name 'sub)   (rrr my-bvsub)]
          [(equal? op-name 'mul)   (rrr my-bvmul)]
+         ;; RV32M multiplication high
+         [(equal? op-name 'mulh)  (rrr bv-mulh-signed)]
+         [(equal? op-name 'mulhu) (rrr bv-mulh-unsigned)]
+         [(equal? op-name 'mulhsu)(rrr bv-mulhsu)]
+         ;; RV32M division and remainder
+         [(equal? op-name 'div)   (rrr bv-div-signed)]
+         [(equal? op-name 'divu)  (rrr bv-div-unsigned)]
+         [(equal? op-name 'rem)   (rrr bv-rem-signed)]
+         [(equal? op-name 'remu)  (rrr bv-rem-unsigned)]
          ;; Shift R-type
          [(equal? op-name 'sll)   (rrr my-bvshl)]
          [(equal? op-name 'srl)   (rrr my-bvushr)]
@@ -126,17 +204,15 @@
          ;; Comparison I-type
          [(equal? op-name 'slti)  (rri (lambda (x y) (if (bvslt (ensure-bv x) (ensure-bv y)) (bv 1 bit) (bv 0 bit))))]
          [(equal? op-name 'sltiu) (rri (lambda (x y) (if (bvult (ensure-bv x) (ensure-bv y)) (bv 1 bit) (bv 0 bit))))]
-         ;; Unary pseudo-instructions
-         [(equal? op-name 'neg)   (rr (lambda (x) (bvneg (ensure-bv x))))]
-         [(equal? op-name 'not)   (rr (lambda (x) (bvnot (ensure-bv x))))]
-         [(equal? op-name 'seqz)  (rr (lambda (x) (if (bveq (ensure-bv x) (bv 0 bit)) (bv 1 bit) (bv 0 bit))))]
-         [(equal? op-name 'snez)  (rr (lambda (x) (if (bveq (ensure-bv x) (bv 0 bit)) (bv 0 bit) (bv 1 bit))))]
          ;; Upper immediate
          [(equal? op-name 'lui)   (ri-upper)]
          [else (assert #f (format "simulator: undefined instruction ~a" op-name))]))
       ;; end interpret-inst
 
       (for ([x program]) (interpret-inst x))
+
+      ;; Ensure x0 is always 0
+      (vector-set! regs-out 0 (ensure-bv 0))
 
       ;; If mem = #f (never reference mem), set mem before returning
       (unless mem (set! mem (progstate-memory state)))

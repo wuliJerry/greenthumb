@@ -1,0 +1,19 @@
+user break
+  context...:
+   .../private/parse-interp.rkt:503:8
+   /home/allenjin/racket-8.17/collects/syntax/parse/private/residual-interp.rkt:191:0
+   /home/allenjin/racket-8.17/collects/syntax/parse/private/residual-interp.rkt:228:0
+   /home/allenjin/racket-8.17/collects/syntax/parse/private/residual-interp.rkt:218:2: s-and-loop
+   /home/allenjin/racket-8.17/collects/syntax/parse/private/minimatch.rkt:33:17: fail
+   /home/allenjin/racket-8.17/collects/syntax/parse/private/residual-interp.rkt:64:2: fh/disj
+   .../private/map.rkt:40:19: loop
+   [repeats 1 more time]
+   /home/allenjin/.racket/8.17/pkgs/rosette/rosette/base/form/module.rkt:112:2: bmv/list
+   .../private/parse-interp.rkt:643:50
+   .../private/map.rkt:40:19: loop
+   [repeats 1 more time]
+   /home/allenjin/.racket/8.17/pkgs/rosette/rosette/base/form/module.rkt:112:2: bmv/list
+   .../private/parse-interp.rkt:643:50
+   .../private/map.rkt:40:19: loop
+   /home/allenjin/.racket/8.17/pkgs/rosette/rosette/base/form/module.rkt:112:2: bmv/list
+   ...

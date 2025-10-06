@@ -24,6 +24,55 @@
     (define (shl a b) (<< a b bit))
     (define (ushr a b) (>>> a b bit))
 
+    ;; Multiplication high functions (from ARM implementation)
+    (define (mulh-signed x y) (smmul x y bit))
+    (define (mulh-unsigned x y) (ummul x y bit))
+
+    ;; MULHSU: signed × unsigned multiplication high
+    (define (mulhsu x y)
+      ;; Sign extend x to 64 bits, zero extend y to 64 bits
+      (define x-64 (if (< x 0)
+                       (bitwise-ior x (arithmetic-shift -1 bit))
+                       x))
+      (define y-64 (bitwise-and y (sub1 (arithmetic-shift 1 bit))))
+      (finitize-bit (arithmetic-shift (* x-64 y-64) (- bit))))
+
+    ;; Division with RISC-V special cases
+    (define (div-signed x y)
+      (cond
+        ;; Division by zero: return -1
+        [(= y 0) -1]
+        ;; Overflow: most negative / -1 = most negative
+        [(and (= x (arithmetic-shift -1 (sub1 bit)))
+              (= y -1))
+         x]
+        [else (finitize-bit (quotient x y))]))
+
+    (define (div-unsigned x y)
+      (if (= y 0)
+          (sub1 (arithmetic-shift 1 bit))  ; All 1s for division by zero
+          (let* ([ux (if (< x 0) (+ x (arithmetic-shift 1 bit)) x)]
+                 [uy (if (< y 0) (+ y (arithmetic-shift 1 bit)) y)])
+            (finitize-bit (quotient ux uy)))))
+
+    ;; Remainder with RISC-V special cases
+    (define (rem-signed x y)
+      (cond
+        ;; Division by zero: return dividend
+        [(= y 0) x]
+        ;; Overflow case: remainder is 0
+        [(and (= x (arithmetic-shift -1 (sub1 bit)))
+              (= y -1))
+         0]
+        [else (finitize-bit (remainder x y))]))
+
+    (define (rem-unsigned x y)
+      (if (= y 0)
+          x  ; Return dividend for division by zero
+          (let* ([ux (if (< x 0) (+ x (arithmetic-shift 1 bit)) x)]
+                 [uy (if (< y 0) (+ y (arithmetic-shift 1 bit)) y)])
+            (finitize-bit (remainder ux uy)))))
+
     ;; Binary operations
     (define my-bvadd  (bvop +))
     (define my-bvsub  (bvop -))
@@ -63,7 +112,8 @@
           (define a (vector-ref args 1))
           (define b (vector-ref args 2))
           (define val (f (vector-ref regs-out a) (vector-ref regs-out b)))
-          (vector-set! regs-out d val))
+          ;; Only set if not x0 (register 0)
+          (unless (= d 0) (vector-set! regs-out d val)))
 
         ;; I-type: rd = rs1 op imm
         (define (rri f)
@@ -71,21 +121,24 @@
           (define a (vector-ref args 1))
           (define imm (vector-ref args 2))
           (define val (f (vector-ref regs-out a) imm))
-          (vector-set! regs-out d val))
+          ;; Only set if not x0 (register 0)
+          (unless (= d 0) (vector-set! regs-out d val)))
 
         ;; RR-type (unary): rd = op(rs)
         (define (rr f)
           (define d (vector-ref args 0))
           (define a (vector-ref args 1))
           (define val (f (vector-ref regs-out a)))
-          (vector-set! regs-out d val))
+          ;; Only set if not x0 (register 0)
+          (unless (= d 0) (vector-set! regs-out d val)))
 
         ;; RI-type (upper immediate): rd = imm << 12
         (define (ri-upper)
           (define d (vector-ref args 0))
           (define imm (vector-ref args 1))
           (define val (finitize-bit (<< imm 12 bit)))
-          (vector-set! regs-out d val))
+          ;; Only set if not x0 (register 0)
+          (unless (= d 0) (vector-set! regs-out d val)))
 
         ;; Comparison helper
         (define (slt-signed x y) (if (< x y) 1 0))
@@ -100,6 +153,15 @@
          [(equal? op-name 'add)   (rrr my-bvadd)]
          [(equal? op-name 'sub)   (rrr my-bvsub)]
          [(equal? op-name 'mul)   (rrr my-bvmul)]
+         ;; RV32M multiplication high
+         [(equal? op-name 'mulh)  (rrr mulh-signed)]
+         [(equal? op-name 'mulhu) (rrr mulh-unsigned)]
+         [(equal? op-name 'mulhsu)(rrr mulhsu)]
+         ;; RV32M division and remainder
+         [(equal? op-name 'div)   (rrr div-signed)]
+         [(equal? op-name 'divu)  (rrr div-unsigned)]
+         [(equal? op-name 'rem)   (rrr rem-signed)]
+         [(equal? op-name 'remu)  (rrr rem-unsigned)]
          ;; Shift R-type
          [(equal? op-name 'sll)   (rrr my-bvshl)]
          [(equal? op-name 'srl)   (rrr my-bvushr)]
@@ -124,17 +186,15 @@
          ;; Comparison I-type
          [(equal? op-name 'slti)  (rri slt-signed)]
          [(equal? op-name 'sltiu) (rri slt-unsigned)]
-         ;; Unary pseudo-instructions
-         [(equal? op-name 'neg)   (rr (lambda (x) (finitize-bit (- x))))]
-         [(equal? op-name 'not)   (rr (lambda (x) (finitize-bit (bitwise-not x))))]
-         [(equal? op-name 'seqz)  (rr (lambda (x) (if (= x 0) 1 0)))]
-         [(equal? op-name 'snez)  (rr (lambda (x) (if (= x 0) 0 1)))]
          ;; Upper immediate
          [(equal? op-name 'lui)   (ri-upper)]
          [else (raise (format "simulator: undefined instruction ~a" op-name))]))
       ;; end interpret-inst
 
       (for ([x program]) (interpret-inst x))
+
+      ;; Ensure x0 is always 0
+      (vector-set! regs-out 0 0)
 
       ;; If mem = #f (never reference mem), set mem before returning
       (unless mem (set! mem (progstate-memory state)))

@@ -7,7 +7,7 @@
          )
 
 ;; Phase 0: Set up bitwidth for Rosette
-(current-bitwidth 64)
+(current-bitwidth 32)
 
 ;; Phase A: Test machine, parser, printer
 (pretty-display "Phase A: test machine, parser, and printer.")

@@ -32,8 +32,8 @@
     ;; Our RISC-V subset has no memory operations, so always return #f
     (define (uses-memory? inst) #f)
 
-    ;; RISC-V RV64I uses 64-bit registers
-    (unless bitwidth (set! bitwidth 64))
+    ;; RISC-V RV32I uses 32-bit registers
+    (unless bitwidth (set! bitwidth 32))
     (set! random-input-bits bitwidth)
 
     ;;;;;;;;;;;;;;;;;;;;; program state ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -57,8 +57,8 @@
     ;;;;;;;;;;;;;;;;;;;;; instruction classes ;;;;;;;;;;;;;;;;;;;;;;;;
     (define-arg-type 'reg (lambda (config) (range config)))
     (define-arg-type 'const (lambda (config) '(0 1 -1 -2 -8)))
-    ;; User requested: shift amount is fixed at 32 to reduce search space
-    (define-arg-type 'shamt (lambda (config) '(32)))
+    ;; For RV32: shift amount should be in range 0-31, using a few key values to reduce search space
+    (define-arg-type 'shamt (lambda (config) '(1 8 16 31)))
 
     ;; Inform GreenThumb how many opcodes there are in one instruction.
     (init-machine-description 1)
@@ -68,12 +68,19 @@
     ;; R-type instructions with commutative operations
     ;; ADD rd, rs1, rs2 - rd = rs1 + rs2
     ;; MUL rd, rs1, rs2 - rd = (rs1 * rs2)[31:0]
-    (define-instruction-class 'rrr-commute '(add mul)
+    ;; MULH rd, rs1, rs2 - rd = (rs1 * rs2)[63:32] (signed × signed)
+    ;; MULHU rd, rs1, rs2 - rd = (rs1 * rs2)[63:32] (unsigned × unsigned)
+    (define-instruction-class 'rrr-commute '(add mul mulh mulhu)
       #:args '(reg reg reg) #:ins '(1 2) #:outs '(0) #:commute '(1 . 2))
 
     ;; R-type non-commutative instructions
     ;; SUB rd, rs1, rs2 - rd = rs1 - rs2
-    (define-instruction-class 'rrr '(sub)
+    ;; MULHSU rd, rs1, rs2 - rd = (rs1 * rs2)[63:32] (signed × unsigned)
+    ;; DIV rd, rs1, rs2 - rd = rs1 / rs2 (signed division)
+    ;; DIVU rd, rs1, rs2 - rd = rs1 / rs2 (unsigned division)
+    ;; REM rd, rs1, rs2 - rd = rs1 % rs2 (signed remainder)
+    ;; REMU rd, rs1, rs2 - rd = rs1 % rs2 (unsigned remainder)
+    (define-instruction-class 'rrr '(sub mulhsu div divu rem remu)
       #:args '(reg reg reg) #:ins '(1 2) #:outs '(0))
 
     ;; R-type shift instructions with register shift amount
@@ -120,14 +127,6 @@
     ;; SLTIU rd, rs1, imm - rd = (rs1 < imm) ? 1 : 0 (unsigned)
     (define-instruction-class 'rri-compare '(slti sltiu)
       #:args '(reg reg const) #:ins '(1) #:outs '(0))
-
-    ;; Pseudo-instructions (expanded from single-operand forms)
-    ;; NEG rd, rs - rd = -rs (actually: SUB rd, x0, rs)
-    ;; NOT rd, rs - rd = ~rs (actually: XORI rd, rs, -1)
-    ;; SEQZ rd, rs - rd = (rs == 0) ? 1 : 0 (actually: SLTIU rd, rs, 1)
-    ;; SNEZ rd, rs - rd = (rs != 0) ? 1 : 0 (actually: SLTU rd, x0, rs)
-    (define-instruction-class 'rr-unary '(neg not seqz snez)
-      #:args '(reg reg) #:ins '(1) #:outs '(0))
 
     ;; U-type instruction for large immediates
     ;; LUI rd, imm - rd = imm << 12 (load upper immediate)
