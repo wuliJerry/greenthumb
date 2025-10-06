@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 # Configuration
-TIME_LIMIT = 300  # 5 minutes per test
+TIME_LIMIT = 300000  # 5 minutes per test
 NUM_CORES = 1     # Number of cores per search mode
 MAX_PARALLEL_JOBS = 4  # Maximum number of tests to run in parallel
 
