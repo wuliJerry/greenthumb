@@ -142,8 +142,8 @@
         (define (run-file id)
           (define out-port 
 	    (open-output-file (format "~a-~a.log" path id) #:exists 'truncate))
-          (define-values (sp o i e) 
-            (subprocess out-port #f out-port (find-executable-path "racket") (format "~a-~a.rkt" path id)))
+          (define-values (sp o i e)
+            (subprocess out-port #f out-port "/home/allenjin/racket-8.17/bin/racket" (format "~a-~a.rkt" path id)))
           sp)
 
         (define (kill-all)
