@@ -128,9 +128,10 @@
     (define-instruction-class 'rri-compare '(slti sltiu)
       #:args '(reg reg const) #:ins '(1) #:outs '(0))
 
-    ;; U-type instruction for large immediates
+    ;; U-type instructions for large immediates
     ;; LUI rd, imm - rd = imm << 12 (load upper immediate)
-    (define-instruction-class 'ri-upper '(lui)
+    ;; AUIPC rd, imm - rd = PC + (imm << 12) (add upper immediate to PC)
+    (define-instruction-class 'ri-upper '(lui auipc)
       #:args '(reg const) #:ins '() #:outs '(0))
 
     (finalize-machine-description)

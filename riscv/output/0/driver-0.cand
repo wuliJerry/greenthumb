@@ -1,3 +1,0 @@
-xori x2, x1, -1
-nop 
-xori x5, x2, -1

@@ -95,6 +95,8 @@
       (define regs-out (vector-copy (progstate-regs state)))
       ;; Set mem = #f for now (we don't have load/store in this subset)
       (define mem #f)
+      ;; Track program counter for AUIPC (each instruction is 4 bytes)
+      (define pc 0)
 
       ;; Call this function when we want to reference mem
       (define (prepare-mem)
@@ -188,10 +190,19 @@
          [(equal? op-name 'sltiu) (rri slt-unsigned)]
          ;; Upper immediate
          [(equal? op-name 'lui)   (ri-upper)]
+         ;; AUIPC - Add Upper Immediate to PC
+         [(equal? op-name 'auipc)
+          (define d (vector-ref args 0))
+          (define imm (vector-ref args 1))
+          ;; rd = PC + (imm << 12)
+          (define val (finitize-bit (+ pc (<< imm 12 bit))))
+          (unless (= d 0) (vector-set! regs-out d val))]
          [else (raise (format "simulator: undefined instruction ~a" op-name))]))
       ;; end interpret-inst
 
-      (for ([x program]) (interpret-inst x))
+      (for ([x program] [i (in-naturals)])
+        (set! pc (* i 4))  ;; Update PC before each instruction (4 bytes per instruction)
+        (interpret-inst x))
 
       ;; Ensure x0 is always 0
       (vector-set! regs-out 0 0)
