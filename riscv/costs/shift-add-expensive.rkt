@@ -1,0 +1,31 @@
+#lang racket
+;; Cost model making SLLI and ADD expensive for mul_by_5 test
+#hash((add . 500)       ; Make ADD expensive
+      (sub . 1)
+      (and . 1)
+      (or . 1)
+      (xor . 1)
+      (sll . 1)
+      (srl . 1)
+      (sra . 1)
+      (slt . 1)
+      (sltu . 1)
+      (addi . 1)
+      (andi . 1)
+      (ori . 1)
+      (xori . 1)
+      (slti . 1)
+      (sltiu . 1)
+      (slli . 500)     ; Make SLLI expensive
+      (srli . 1)
+      (srai . 1)
+      (lui . 1)
+      (auipc . 1)
+      (mul . 4)       ; MUL is cheaper than shift+add now
+      (mulh . 4)
+      (mulhu . 4)
+      (mulhsu . 4)
+      (div . 32)
+      (divu . 32)
+      (rem . 32)
+      (remu . 32))

@@ -7,7 +7,7 @@
 (define riscv-simulator-rosette%
   (class simulator-rosette%
     (super-new)
-    (init-field machine)
+    (init-field machine [cost-model #f])  ; Optional cost model parameter
     (override interpret performance-cost get-constructor)
 
     (define (get-constructor) riscv-simulator-rosette%)
@@ -244,6 +244,10 @@
           (define op-name (vector-ref opcodes op))
           (define inst-cost
             (cond
+             ;; Check custom cost model first if provided
+             [(and cost-model (hash-has-key? cost-model op-name))
+              (hash-ref cost-model op-name)]
+             ;; Otherwise use default costs
              ;; RV32M multiply instructions: 4 cycles
              [(member op-name '(mul mulh mulhu mulhsu)) 4]
              ;; RV32M divide instructions: 32 cycles (typical for hardware divider)

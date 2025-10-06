@@ -1,23 +1,23 @@
 #lang racket
-(require (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-parser.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-machine.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-printer.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-simulator-racket.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-simulator-rosette.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-validator.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-forwardbackward.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-enumerator.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-inverse.rkt"))
-(define machine (new riscv-machine% [config 6]))
+(require (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-parser.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-machine.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-printer.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-simulator-racket.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-simulator-rosette.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-validator.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-stochastic.rkt"))
+(define machine (new riscv-machine% [config 4]))
 (define printer (new riscv-printer% [machine machine]))
 (define parser (new riscv-parser%))
 (define simulator-racket (new riscv-simulator-racket% [machine machine]))
 (define simulator-rosette (new riscv-simulator-rosette% [machine machine]))
 (define validator (new riscv-validator% [machine machine] [simulator simulator-rosette]))
-(define search (new riscv-forwardbackward% [machine machine] [printer printer] [parser parser] [validator validator] [simulator simulator-racket] [enumerator% riscv-enumerator%] [inverse% riscv-inverse%] [syn-mode `partial1]))
+(define search (new riscv-stochastic% [machine machine] [printer printer] [parser parser] [validator validator] [simulator simulator-racket] [syn-mode #f]))
 (define prefix (send parser ir-from-string "
 "))
 (define code (send parser ir-from-string "
-xori x2, x1, -1
-addi x3, x2, 1
-xori x4, x3, -1
-addi x5, x4, 1
+slli x2, x1, 1
+slli x3, x1, 1
+add x2, x2, x3
+add x2, x2, x1
 "))
 (define postfix (send parser ir-from-string "
 "))
 (define encoded-prefix (send printer encode prefix))
 (define encoded-code (send printer encode code))
 (define encoded-postfix (send printer encode postfix))
-(send search superoptimize encoded-code (send printer encode-live '(5)) "output/0/driver-3" 180 #f #:assume #f #:input-file #f #:start-prog #f #:prefix encoded-prefix #:postfix encoded-postfix)
+(send search superoptimize encoded-code (send printer encode-live '(2)) "output/0/driver-3" 30 #f #:assume #f #:input-file #f #:start-prog #f #:prefix encoded-prefix #:postfix encoded-postfix)

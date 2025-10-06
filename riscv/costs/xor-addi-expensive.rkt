@@ -1,0 +1,31 @@
+#lang racket
+;; Cost model making XORI and ADDI expensive for negate test
+#hash((add . 1)
+      (sub . 1)       ; SUB might be a good alternative
+      (and . 1)
+      (or . 1)
+      (xor . 1)
+      (sll . 1)
+      (srl . 1)
+      (sra . 1)
+      (slt . 1)
+      (sltu . 1)
+      (addi . 500)    ; Make ADDI expensive
+      (andi . 1)
+      (ori . 1)
+      (xori . 500)    ; Make XORI expensive
+      (slti . 1)
+      (sltiu . 1)
+      (slli . 1)
+      (srli . 1)
+      (srai . 1)
+      (lui . 1)
+      (auipc . 1)
+      (mul . 4)
+      (mulh . 4)
+      (mulhu . 4)
+      (mulhsu . 4)
+      (div . 32)
+      (divu . 32)
+      (rem . 32)
+      (remu . 32))

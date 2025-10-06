@@ -1,6 +1,6 @@
 #lang racket
 (require (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-parser.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-machine.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-printer.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-simulator-racket.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-simulator-rosette.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-validator.rkt") (file "/home/allenjin/Codes/greenthumb_jerry/riscv/riscv-stochastic.rkt"))
-(define machine (new riscv-machine% [config 6]))
+(define machine (new riscv-machine% [config 4]))
 (define printer (new riscv-printer% [machine machine]))
 (define parser (new riscv-parser%))
 (define simulator-racket (new riscv-simulator-racket% [machine machine]))
@@ -10,14 +10,14 @@
 (define prefix (send parser ir-from-string "
 "))
 (define code (send parser ir-from-string "
-xori x2, x1, -1
-addi x3, x2, 1
-xori x4, x3, -1
-addi x5, x4, 1
+slli x2, x1, 1
+slli x3, x1, 1
+add x2, x2, x3
+add x2, x2, x1
 "))
 (define postfix (send parser ir-from-string "
 "))
 (define encoded-prefix (send printer encode prefix))
 (define encoded-code (send printer encode code))
 (define encoded-postfix (send printer encode postfix))
-(send search superoptimize encoded-code (send printer encode-live '(5)) "output/0/driver-0" 180 #f #:assume #f #:input-file #f #:start-prog #f #:prefix encoded-prefix #:postfix encoded-postfix)
+(send search superoptimize encoded-code (send printer encode-live '(2)) "output/0/driver-0" 30 #f #:assume #f #:input-file #f #:start-prog #f #:prefix encoded-prefix #:postfix encoded-postfix)
