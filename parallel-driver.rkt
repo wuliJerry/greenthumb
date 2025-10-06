@@ -15,7 +15,7 @@
 (define parallel-driver%
   (class object%
     (super-new)
-    (init-field isa parser machine printer validator search-type mode
+    (init-field isa parser machine printer validator simulator search-type mode
                 [window #f])
     ;; search = `solver, `stoch, `hybrid
     ;; mode = `linear, `binary, `syn, `opt
@@ -59,6 +59,11 @@
 	(system (format "mkdir ~a" dir))
 	(define path (format "~a/driver" dir))
 	(set! dir-id (add1 dir-id))
+
+        ;; Calculate original code cost for early termination
+        (define original-code (vector-copy code from to))
+        (define original-cost (send simulator performance-cost (send printer encode original-code)))
+        (pretty-display (format ">>> original cost: ~a" original-cost))
         
         (define (create-file id search-type mode)
           (define (req file)
@@ -277,12 +282,28 @@
         (newline)
         
         (define (result)
-	  (define limit (if (string? time-limit) 
-			    (string->number time-limit) 
+	  (define limit (if (string? time-limit)
+			    (string->number time-limit)
 			    time-limit))
           (define (update-stats)
             (sleep 10)
-            (when (and (< (- (current-seconds) t) limit));(> (get-free-mem) 1000000))
+            ;; Check if we found an improvement
+            (define-values (best-cost best-len best-time best-id) (get-best-info dir))
+            (define found-improvement (and best-cost (< best-cost original-cost)))
+
+            (when found-improvement
+                  (pretty-display "===============================================")
+                  (pretty-display "IMPROVEMENT FOUND! Terminating search early.")
+                  (pretty-display (format "Original cost: ~a" original-cost))
+                  (pretty-display (format "New cost:      ~a" best-cost))
+                  (pretty-display (format "Improvement:   ~a (~a%)"
+                                          (- original-cost best-cost)
+                                          (~r (* 100 (/ (- original-cost best-cost) original-cost))
+                                              #:precision 2)))
+                  (pretty-display "==============================================="))
+
+            (when (and (not found-improvement)
+                       (< (- (current-seconds) t) limit));(> (get-free-mem) 1000000))
                   (for ([id (length processes-stoch)]
                         [sp processes-stoch])
                        (unless (equal? (subprocess-status sp) 'running)

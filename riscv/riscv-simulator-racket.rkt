@@ -213,12 +213,28 @@
       )
 
     ;; Estimate performance cost of a given program.
+    ;; Uses realistic latency-based cost model for RISC-V:
+    ;; - Simple ALU (add/sub/logic/comp/imm/lui): 1 cycle
+    ;; - Shifts (imm): 1 cycle
+    ;; - Shifts (reg): 1 cycle (conservative, can be 1-2)
+    ;; - mul: 4 cycles
     (define (performance-cost program)
       (define cost 0)
       (for ([x program])
-        ;; Count all instructions except nops
-        (unless (= (inst-op x) nop-id)
-          (set! cost (add1 cost))))
+        (define op (inst-op x))
+        (unless (= op nop-id)
+          (define op-name (vector-ref opcodes op))
+          (define inst-cost
+            (cond
+             ;; Multiply: 4 cycles
+             [(equal? op-name 'mul) 4]
+             ;; All other instructions: 1 cycle
+             ;; This includes: add, sub, and, or, xor, slt, sltu,
+             ;;                addi, andi, ori, xori, slti, sltiu,
+             ;;                sll, srl, sra, slli, srli, srai,
+             ;;                neg, not, seqz, snez, lui
+             [else 1]))
+          (set! cost (+ cost inst-cost))))
       cost)
 
     ))

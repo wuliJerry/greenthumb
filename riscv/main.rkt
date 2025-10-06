@@ -26,10 +26,12 @@
   (define parser (new riscv-parser%))
   (define machine (new riscv-machine%))
   (define printer (new riscv-printer% [machine machine]))
-  (define simulator (new riscv-simulator-rosette% [machine machine]))
-  (define validator (new riscv-validator% [machine machine] [simulator simulator]))
-  (define parallel (new parallel-driver% [isa "riscv"] [parser parser] [machine machine] 
+  (define simulator-rosette (new riscv-simulator-rosette% [machine machine]))
+  (define simulator-racket (new riscv-simulator-racket% [machine machine]))
+  (define validator (new riscv-validator% [machine machine] [simulator simulator-rosette]))
+  (define parallel (new parallel-driver% [isa "riscv"] [parser parser] [machine machine]
                         [printer printer] [validator validator]
+                        [simulator simulator-racket]
                         [search-type search-type] [mode mode]
                         [window window]))
 
