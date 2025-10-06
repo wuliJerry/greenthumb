@@ -226,13 +226,15 @@
           (define op-name (vector-ref opcodes op))
           (define inst-cost
             (cond
-             ;; Multiply: 4 cycles
-             [(equal? op-name 'mul) 4]
+             ;; RV32M multiply instructions: 4 cycles
+             [(member op-name '(mul mulh mulhu mulhsu)) 4]
+             ;; RV32M divide instructions: 32 cycles (typical for hardware divider)
+             [(member op-name '(div divu rem remu)) 32]
              ;; All other instructions: 1 cycle
              ;; This includes: add, sub, and, or, xor, slt, sltu,
              ;;                addi, andi, ori, xori, slti, sltiu,
              ;;                sll, srl, sra, slli, srli, srai,
-             ;;                neg, not, seqz, snez, lui
+             ;;                lui, auipc
              [else 1]))
           (set! cost (+ cost inst-cost))))
       cost)
