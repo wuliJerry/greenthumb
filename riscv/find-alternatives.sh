@@ -5,7 +5,6 @@
 
 RACKET=/home/allenjin/racket-8.17/bin/racket
 TIME_LIMIT=120
-CORES=64
 OUTPUT_BASE="alternatives-output"
 
 # Create output directory

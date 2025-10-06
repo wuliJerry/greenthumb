@@ -1,12 +1,35 @@
-instantiate: no argument for required init variable
-  init variable name: syn-mode
-  instantiated class name: stochastic%
-  context...:
-   /home/allenjin/racket-8.17/collects/racket/private/class-internal.rkt:4730:0: obj-error
-   /home/allenjin/Codes/greenthumb_jerry/stochastic.rkt:8:2
-   /home/allenjin/racket-8.17/collects/racket/private/class-internal.rkt:3657:0: continue-make-object
-   /home/allenjin/Codes/greenthumb_jerry/riscv/riscv-stochastic.rkt:7:2
-   /home/allenjin/racket-8.17/collects/racket/private/class-internal.rkt:3657:0: continue-make-object
-   /home/allenjin/racket-8.17/collects/racket/private/class-internal.rkt:3631:0: do-make-object/real-class
-   body of "/home/allenjin/Codes/greenthumb_jerry/riscv/optimize-with-cost.rkt"
 Loading cost model from: costs/shift-add-expensive.rkt
+=== Optimization with Custom Cost Model ===
+Program: programs/alternatives/double/mul_by_5.s
+Original code:
+slli x2, x1, 2
+add x2, x2, x1
+Original cost: 1000
+Using custom cost model
+Running optimization for 120 seconds...
+solver = #<z3>
+Code is register-only - using minimal memory size.
+Finalize memory size 2
+Generate inputs (fast).
+>>> Finish generating inputs outputs at 0 s.
+>>> start MCMC sampling
+>>> Phase 3: stochastic search
+start-program:
+slli x2, x1, 2
+add x2, x2, x1
+NEW! best-correct-program
+output:
+nop 
+add x3, x2, x1
+(time 0)
+FOUND!!!
+Add counterexample. Total = 17.
+#(#(0 0 0 0) (memory% init: #hash() update: #hash()))
+mulhu x3, x2, x1
+NEW! best-correct-program
+output:
+nop 
+(time 0)
+FOUND!!!
+
+Optimized code found:

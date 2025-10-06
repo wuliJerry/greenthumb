@@ -5,8 +5,7 @@
 
 RACKET=/home/allenjin/racket-8.17/bin/racket
 TIME_LIMIT=120
-CORES_PER_JOB=64
-MAX_PARALLEL=4  # Number of parallel jobs
+MAX_PARALLEL=4  # Number of parallel jobs to run simultaneously
 OUTPUT_BASE="alternatives-parallel"
 
 # Create output and log directories
@@ -16,7 +15,6 @@ mkdir -p "$OUTPUT_BASE/logs"
 echo "=== Parallel Alternative Implementation Finder ==="
 echo "Configuration:"
 echo "  - Time limit: ${TIME_LIMIT}s per test"
-echo "  - Cores per job: $CORES_PER_JOB"
 echo "  - Max parallel jobs: $MAX_PARALLEL"
 echo ""
 
@@ -26,14 +24,11 @@ run_optimization() {
     local cost_file=$2
     local output_dir=$3
     local test_name=$4
-    local search_mode=$5
 
     echo "[$(date +%H:%M:%S)] Starting: $test_name"
 
-    $RACKET optimize-with-cost.rkt \
+    $RACKET optimize-alt.rkt \
         --cost "$cost_file" \
-        --$search_mode \
-        -c $CORES_PER_JOB \
         -t $TIME_LIMIT \
         -d "$output_dir" \
         "$prog_file" \
@@ -48,14 +43,14 @@ run_optimization() {
 
 # Export function for parallel execution
 export -f run_optimization
-export RACKET OUTPUT_BASE CORES_PER_JOB TIME_LIMIT
+export RACKET OUTPUT_BASE TIME_LIMIT
 
 # Create job list
 cat > "$OUTPUT_BASE/jobs.txt" << EOF
-programs/alternatives/single/add_copy.s costs/add-expensive.rkt $OUTPUT_BASE/add_copy add_copy stoch
-programs/alternatives/single/slli_double.s costs/slli-expensive.rkt $OUTPUT_BASE/slli_double slli_double stoch
-programs/alternatives/double/mul_by_5.s costs/shift-add-expensive.rkt $OUTPUT_BASE/mul_by_5 mul_by_5 hybrid
-programs/alternatives/double/negate.s costs/xor-addi-expensive.rkt $OUTPUT_BASE/negate negate hybrid
+programs/alternatives/single/add_copy.s costs/add-expensive.rkt $OUTPUT_BASE/add_copy add_copy
+programs/alternatives/single/slli_double.s costs/slli-expensive.rkt $OUTPUT_BASE/slli_double slli_double
+programs/alternatives/double/mul_by_5.s costs/shift-add-expensive.rkt $OUTPUT_BASE/mul_by_5 mul_by_5
+programs/alternatives/double/negate.s costs/xor-addi-expensive.rkt $OUTPUT_BASE/negate negate
 EOF
 
 echo "Starting parallel execution..."
