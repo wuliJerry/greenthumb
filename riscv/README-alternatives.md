@@ -21,7 +21,7 @@ Instead of building a separate equivalence finder, we leverage the optimizer's p
 ```
 programs/alternatives/
 ├── single/                    # Single instruction tests
-│   ├── add_copy.s           # add x2, x1, x0 (copy operation)
+│   ├── add.s                # add x2, x1, x3
 │   └── slli_double.s         # slli x2, x1, 1 (multiply by 2)
 └── double/                    # Two instruction sequences
     ├── mul_by_5.s            # slli + add (multiply by 5)
@@ -49,8 +49,8 @@ costs/
 racket optimize-alt.rkt \
     --cost costs/add-expensive.rkt \
     -t 60 \
-    -d output/add_copy \
-    programs/alternatives/single/add_copy.s
+    -d output/add \
+    programs/alternatives/single/add.s
 ```
 
 ### Run All Tests (Sequential)
@@ -65,8 +65,8 @@ racket optimize-alt.rkt \
 
 ## Example Results
 
-For `add x2, x1, x0` with ADD made expensive:
-- Expected alternatives: `or x2, x1, x0`, `addi x2, x1, 0`, `slli x2, x1, 0`
+For `add x2, x1, x3` with ADD made expensive:
+- Expected alternatives: `or x2, x1, x3`, `sub x2, x1, x0` (if x0=0)
 
 For `slli x2, x1, 1` with SLLI made expensive:
 - Expected alternative: `add x2, x1, x1`

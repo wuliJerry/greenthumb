@@ -8,7 +8,7 @@ echo "Testing original optimizer with custom cost and multiple cores..."
 
 # First test without custom cost to see if it works
 echo "1. Test without custom cost (should work):"
-timeout 30 $RACKET optimize.rkt --stoch -c 4 -t 10 programs/alternatives/single/add_copy.s
+timeout 30 $RACKET optimize.rkt --stoch -c 4 -t 10 programs/alternatives/single/add.s
 
 echo ""
 echo "2. Test with custom cost using original optimizer:"
@@ -59,8 +59,8 @@ cat > temp-test.rkt << 'EOF'
        [search-type 'stoch] [mode 'opt]))
 
 ;; Load program
-(define code (send parser ir-from-file "programs/alternatives/single/add_copy.s"))
-(define info (send parser info-from-file "programs/alternatives/single/add_copy.s"))
+(define code (send parser ir-from-file "programs/alternatives/single/add.s"))
+(define info (send parser info-from-file "programs/alternatives/single/add.s"))
 
 (pretty-display "Original cost with custom model:")
 (pretty-display (send simulator-racket performance-cost (send printer encode code)))

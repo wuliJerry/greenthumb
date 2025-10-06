@@ -18,15 +18,15 @@ echo ""
 # Single instruction tests
 echo "=== Single Instruction Alternatives ==="
 
-# Test 1: Find alternatives to "add x2, x1, x0" (copy operation)
-echo "1. Testing: add x2, x1, x0 (copy)"
+# Test 1: Find alternatives to "add x2, x1, x3"
+echo "1. Testing: add x2, x1, x3"
 echo "   Making ADD expensive (cost=1000)"
 $RACKET optimize-alt.rkt \
     --cost costs/add-expensive.rkt \
     -t $TIME_LIMIT \
     -p $CORES \
-    -d "$OUTPUT_BASE/add_copy" \
-    programs/alternatives/single/add_copy.s
+    -d "$OUTPUT_BASE/add" \
+    programs/alternatives/single/add.s
 
 # Test 2: Find alternatives to "slli x2, x1, 1" (multiply by 2)
 echo ""

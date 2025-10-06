@@ -3,9 +3,9 @@
 # Comprehensive parallel script to find alternatives for ALL RV32IM instructions
 
 RACKET=/home/allenjin/racket-8.17/bin/racket
-TIME_LIMIT=120
-CORES_PER_JOB=4
-MAX_PARALLEL=16  # Number of parallel jobs to run simultaneously
+TIME_LIMIT=30000
+CORES_PER_JOB=64
+MAX_PARALLEL=31  # Number of parallel jobs to run simultaneously
 OUTPUT_BASE="alternatives-all"
 
 # Create output and log directories
@@ -49,7 +49,7 @@ export RACKET OUTPUT_BASE TIME_LIMIT CORES_PER_JOB
 
 # Create job list for all single instructions
 cat > "$OUTPUT_BASE/jobs.txt" << EOF
-programs/alternatives/single/add_copy.s costs/add-expensive.rkt $OUTPUT_BASE/add add
+programs/alternatives/single/add.s costs/add-expensive.rkt $OUTPUT_BASE/add add
 programs/alternatives/single/sub.s costs/sub-expensive.rkt $OUTPUT_BASE/sub sub
 programs/alternatives/single/sll.s costs/sll-expensive.rkt $OUTPUT_BASE/sll sll
 programs/alternatives/single/slt.s costs/slt-expensive.rkt $OUTPUT_BASE/slt slt

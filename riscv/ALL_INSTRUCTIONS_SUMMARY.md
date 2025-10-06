@@ -9,7 +9,7 @@ Created a comprehensive test suite for finding alternative implementations for A
 Located in `programs/alternatives/single/`:
 
 **RV32I Arithmetic (R-type):**
-- `add_copy.s` - Add operation (copy using add x2, x1, x0)
+- `add.s` - Add operation
 - `sub.s` - Subtraction
 - `sll.s` - Shift left logical
 - `slt.s` - Set less than (signed)
