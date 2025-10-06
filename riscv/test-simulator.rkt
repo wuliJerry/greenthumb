@@ -12,14 +12,14 @@
 ;; Phase A: Test machine, parser, printer
 (pretty-display "Phase A: test machine, parser, and printer.")
 (define parser (new riscv-parser%))
-(define machine (new riscv-machine% [config 4]))
+(define machine (new riscv-machine% [config 6]))
 (define printer (new riscv-printer% [machine machine]))
 
 (define code
 (send parser ir-from-string "
-add x0, x1, x2
-sub x3, x2, x1
-xor x0, x0, x3
+add x3, x1, x2
+sub x4, x2, x1
+xor x5, x3, x4
 "))
 
 (pretty-display ">>> Source")

@@ -108,14 +108,18 @@
         (define op-name (vector-ref opcodes op))
         (define args (inst-args my-inst))
 
+        ;; Helper to set register, ensuring x0 is always 0
+        (define (set-reg! d val)
+          (unless (= d 0)  ; Don't write to x0
+            (vector-set! regs-out d val)))
+
         ;; R-type: rd = rs1 op rs2
         (define (rrr f)
           (define d (vector-ref args 0))
           (define a (vector-ref args 1))
           (define b (vector-ref args 2))
           (define val (f (vector-ref regs-out a) (vector-ref regs-out b)))
-          ;; Only set if not x0 (register 0)
-          (unless (= d 0) (vector-set! regs-out d val)))
+          (set-reg! d val))
 
         ;; I-type: rd = rs1 op imm
         (define (rri f)
@@ -123,24 +127,21 @@
           (define a (vector-ref args 1))
           (define imm (vector-ref args 2))
           (define val (f (vector-ref regs-out a) imm))
-          ;; Only set if not x0 (register 0)
-          (unless (= d 0) (vector-set! regs-out d val)))
+          (set-reg! d val))
 
         ;; RR-type (unary): rd = op(rs)
         (define (rr f)
           (define d (vector-ref args 0))
           (define a (vector-ref args 1))
           (define val (f (vector-ref regs-out a)))
-          ;; Only set if not x0 (register 0)
-          (unless (= d 0) (vector-set! regs-out d val)))
+          (set-reg! d val))
 
         ;; RI-type (upper immediate): rd = imm << 12
         (define (ri-upper)
           (define d (vector-ref args 0))
           (define imm (vector-ref args 1))
           (define val (finitize-bit (<< imm 12 bit)))
-          ;; Only set if not x0 (register 0)
-          (unless (= d 0) (vector-set! regs-out d val)))
+          (set-reg! d val))
 
         ;; Comparison helper
         (define (slt-signed x y) (if (< x y) 1 0))

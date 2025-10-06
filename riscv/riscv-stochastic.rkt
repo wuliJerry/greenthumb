@@ -23,15 +23,22 @@
     ;; constraint/live-out: program state that contains predicate
     ;;                      #t if the entry matters, #f otherwise.
     (define (correctness-cost state1 state2 constraint)
-      ;; RISC-V only has registers and memory, no flags
+      ;; FIXED: Do NOT allow register misalignment for RISC-V.
+      ;; The output must be in the exact register specified by live-out.
+      ;; Previous implementation used correctness-cost-base which allowed
+      ;; misalignment, causing incorrect optimizations to be accepted.
+      (define regs1 (progstate-regs state1))
+      (define regs2 (progstate-regs state2))
+      (define regs-constraint (progstate-regs constraint))
+      (define n (vector-length regs1))
 
-      ;; Calculate register cost using correctness-cost-base
-      ;; This method accounts for misalignment (e.g., if x1 of state1 = x2 of state2)
       (define cost-regs
-        (correctness-cost-base (progstate-regs state1)
-                               (progstate-regs state2)
-                               (progstate-regs constraint)
-                               diff-cost))
+        (for/sum ([i (in-range n)])
+          (define v (vector-ref regs-constraint i))
+          (if v
+              ;; Only compare the exact same register index - no misalignment!
+              (diff-cost (vector-ref regs1 i) (vector-ref regs2 i))
+              0)))
 
       ;; Calculate memory cost if memory is live
       (define cost-mem
